@@ -21,3 +21,17 @@ def sigmoid(arr):
 def relu(x):
     x = np.maximum(0, x)
     return x
+
+def softmax(x):
+    #Get an exponintiated array
+    exponents = np.exp(x)
+    #Get the dimensions 
+    dims = np.shape(x)
+    #Get a vector of sums(as per output set)
+    expsum = np.sum(exponents, axis=1)
+    #Reshape the output, so that each value is a vector
+    expsum = expsum.reshape(dims[0], 1)
+
+    #Divide exponentiated values by the sum of each exponintiated output set(dim 1)
+    norm = exponents / expsum
+    return norm
