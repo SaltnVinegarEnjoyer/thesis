@@ -16,3 +16,8 @@ def sigmoid(arr):
     #Reshape back to original shape
     arr = arr.reshape(dims)
     return arr
+
+#max(0, x)
+def relu(x):
+    x = np.maximum(0, x)
+    return x
