@@ -1,16 +1,25 @@
 import layer
 import actfun
+import lossfun
+import numpy as np
 
-#Activation function
-fun = actfun.sigmoid
+def checkFunctionality():
+    a = np.array([[2.5, 0.0, 2, 8], [2.5, 0.0, 2, 8]])
+    b = np.array([[3, -0.5, 2, 7],[3, -0.5, 2, 7]])
+    print("Mean square error loss:")
+    print("Out: \n", a)
+    print("Target: \n", b)
+    print("Result: \n", lossfun.meanSquare(a, b))
 
-#Layer initialization
-lay = layer.dense(5, 2, fun)
+    a = np.array([[0.1,1,0.9564], [0.1,0.1,1], [1,0.1,1], [0.56, 0.34, 0.9]])
+    b = np.array([[0,0,1], [0,0,1], [0,0,1], [1,0,0]])
+    print("Cross enthropy loss:")
+    print("Out: \n", a)
+    print("Target: \n", b)
+    print("Result: \n", lossfun.crossEnthropyOneHot(a, b))
 
-#Sample input batch
-inp = [[0,1,3,4,2], [5,3,2,1,6]]
+def main():
+    checkFunctionality()
 
-#Output of a forward pass
-out = lay.forward(inp)
-
-print(out)
+if __name__ == "__main__":
+    main()
