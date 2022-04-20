@@ -4,17 +4,16 @@ import numpy as np
 def meanSquare(result, target):
     return ((target - result) ** 2).mean()
 
-def crossEnthropyOneHot(result, target):
-    #There could be 2 types of CEL usage:
-    #1 - We get a batch of one-hot encoded targets
-    #2 - We get a vector of numbers, which represents the correct index of an array
-    #For now, it is made only for one-hot encoded values
+def crossEnthropy(result, target):
+    #Check if target values are one-hot encoded.
+    #If it is, convert it to index vector form
+    if len(target.shape) == 2:
+        #Get a 1-dimensional array with indexes of "hot"(1) values
+        target_idx = np.argmax(target, axis=1)
+    elif len(target.shape) == 1:
+        target_idx = target
 
-    #Target - one-hot matrix
-    #Result - output of a layer
-
-    #Get a 1-dimensional array with indexes of "hot"(1) values
-    target_idx = np.argmax(target, axis=1)
+    #Array of resulting values as per target
     needed_vals =[]
 
     #Fill the vals array with results at "right" indexes
@@ -27,6 +26,6 @@ def crossEnthropyOneHot(result, target):
     loss = -1 * np.log(needed_vals)
 
     #Get an average value of array
-    avg_loss = sum(loss) / len(loss)
+    avg_loss = np.mean(loss)
 
     return avg_loss
