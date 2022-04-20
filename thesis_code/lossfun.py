@@ -20,9 +20,15 @@ def crossEnthropy(result, target):
     for i in range(len(target_idx)):
         needed_vals.append(result[i, target_idx[i]])
 
+    #Convert an array to numpy array
+    needed_vals = np.array(needed_vals)
+    #Replace all 0 values in the array to prevent division by 0
+    needed_vals = np.where(needed_vals == 0, 1e-10, needed_vals)
+    #Replace all 1(full match) values in the array to prevent overfloving (log(x) < 0 when x > 1)
+    needed_vals = np.where(needed_vals == 1, 1 - 1e-10, needed_vals)
+
     #Apply natural logarithm to the values. Smaller value -> bigger abs(output) 
     #Multiply the result by -1
-    #Here may be an error because of taking log(0)
     loss = -1 * np.log(needed_vals)
 
     #Get an average value of array
