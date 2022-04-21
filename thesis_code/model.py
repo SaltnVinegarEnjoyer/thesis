@@ -30,5 +30,5 @@ class Model():
             inputs = layer.forward(inputs, train=True)
         #Now the input is a matrix of forward pass output
         #Calculate the loss
-        loss = lossfun.crossEnthropy(inputs, targets)
-
+        loss_function = lossfun.crossEnthropy
+        loss = loss_function.forward(inputs, targets)

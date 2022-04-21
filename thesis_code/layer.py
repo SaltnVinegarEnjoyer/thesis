@@ -8,7 +8,8 @@ class dense:
         #row - 1, since there's 1 bias per neuron, column - amount of neurons
         self.biases = np.zeros((1, outputs))
         #Initialize activation function
-        self.actfun = lambda x: actfun(x)
+        actfunObj = actfun()
+        self.actfun = lambda x: actfunObj.forward(x)
 
     def forward(self, inputs, train=False):
         if train:
@@ -41,12 +42,25 @@ class dense:
         self.weight_gradient = []
         #db
         self.bias_gradient = []
+        #dactfun
+        self.actfun_gradient = []
 
         for tset in next_grad:
-            #We need to transpose weights again, because they were transposed at the initialization
+            #We need to transpose weights so that we are matching the shape of inputs(they are NOT transposed from the initialization)
             gradset = np.dot(tset, self.weights.T)
             self.input_gradient.append(gradset)
-        
+            #We need to transpose inputs so that we are matching the shape of weights(they are transposed from the initialization)
+            #Inputs is the first argument to dot because now it is transposed, and dot multiplies rows by cols
+            gradset = np.dot(self.inputs.T, tset)
+            self.weight_gradient.append(gradset)
+
+            gradset = self.actfun.backward(tset)
+            self.actfun_gradient.append()
+
+        #Derivative of a bias calculation is always 1. By the chain rule, we just need to get the overall gradient that we got from the next layer and multiply it by 1.
+        #We also need to add another dimension since we have lost one in the sum() function
+        self.bias_gradient.append([np.sum(next_grad, axis=0)])
+        print(self.bias_gradient)
         return self.input_gradient
         pass
 
