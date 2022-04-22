@@ -40,3 +40,30 @@ class CrossEnthropy:
         avg_loss = np.mean(loss)
   
         return avg_loss
+
+
+    def backward(self, result, target):
+        #Gradient of a cross enthropy loss is -1 * (target/result), element-wise
+
+        #Check if target values are index encoded
+        #Convert it to one-hot encoded form
+        if len(np.shape(target)) == 1:
+            target_one_hot = []
+            #Go through each set in a batch
+            for val in target:
+                #Create empty array of the same size as result
+                one_hot = np.zeros(len(result[0]))
+                #Encode value at needed index to 1
+                one_hot[val] = 1
+                #Append new set to the array
+                target_one_hot.append(one_hot)
+        else:
+            target_one_hot = target
+        
+        #Get the gradients
+        grad = -1 * (target_one_hot/result)
+        #Normalize the gradient. This is needed since we are working with batches
+        grad = grad / len(result)
+
+        return grad
+        
