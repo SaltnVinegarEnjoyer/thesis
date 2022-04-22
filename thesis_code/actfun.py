@@ -53,8 +53,20 @@ class Softmax:
        expsum = expsum.reshape(dims[0], 1)
 
        #Divide exponentiated values by the sum of each exponintiated output set(dim 1)
-       norm = exponents / expsum
-       return norm
+       self.norm = exponents / expsum
+       return self.norm
 
-    def backward(self):
-        pass
+    def backward(self, next_grad):
+        gradient = np.empty_like(next_grad)
+
+        #For each grad set in a batch
+        for index, (out, grad) in enumerate(zip(self.norm, next_grad)):
+            #Flatten the out from next grad
+            out = out.reshape(-1, 1)
+            #Calculate the Jacobian matrix
+            jacobian = np.diagflat(out) - np.dot(out, out)
+
+            #Append a new gradient 
+            gradient[index] = np.dot(jacobian, out)
+        
+        return gradient
