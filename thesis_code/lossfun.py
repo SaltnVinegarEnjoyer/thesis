@@ -65,5 +65,5 @@ class CrossEnthropy:
         #Normalize the gradient. This is needed since we are working with batches
         grad = grad / len(result)
 
-        return grad
+        return np.array(grad)
         

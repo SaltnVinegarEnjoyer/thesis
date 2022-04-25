@@ -38,7 +38,7 @@ class Relu:
         #dReLU/dx = 1 if x > 0, 0 if x <= 0
         res = next_grad.copy()
         #Change each value at index i to 0 when output[i] of a function is < 0
-        res[self.out < 0] = 0
+        res = np.where(res < 0, 0, res)
         return res
 
 class Softmax:
@@ -57,16 +57,19 @@ class Softmax:
        return self.norm
 
     def backward(self, next_grad):
-        gradient = np.empty_like(next_grad)
+        #Gradient placeholder
+        gradient = np.zeros_like(next_grad)
 
         #For each grad set in a batch
         for index, (out, grad) in enumerate(zip(self.norm, next_grad)):
             #Flatten the out from next grad
             out = out.reshape(-1, 1)
             #Calculate the Jacobian matrix
-            jacobian = np.diagflat(out) - np.dot(out, out)
+            #Diagflat - array which is one-hot encoded by the values at indices(put all the values diagonally)
+            jacobian = np.diagflat(out) - np.dot(out, out.T)
 
-            #Append a new gradient 
-            gradient[index] = np.dot(jacobian, out)
+            #Append the gradient list
+            gradient[index] = np.dot(jacobian, grad)
         
+        #Return the gradient for further propagation
         return gradient
