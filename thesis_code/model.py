@@ -1,6 +1,6 @@
 import lossfun 
+import optimizer
 import numpy as np
-
 
 class Model():
     def __init__(self):
@@ -23,7 +23,10 @@ class Model():
             inputs = layer.forward(inputs, train=False)
         return inputs
     
-    def backward(self, inputs, targets):
+    def backward(self, inputs, targets, learning_rate = 0.1, optimizer = optimizer.SGD):
+        #Initialize optimizer
+        opt = optimizer(learning_rate)
+
         #Transform inputs to needed form
         inputs = np.array(inputs)
         if inputs.shape == 1:
@@ -50,4 +53,9 @@ class Model():
         for lay in range(len(self.layers)-2, -1, -1):
             #nextgrad - input gradient of next layer
             nextgrad = self.layers[lay].innerBackward(nextgrad)
+        
+        #Update parameters using optimizer
+        for lay in self.layers:
+            opt.forward(lay)
+
 
