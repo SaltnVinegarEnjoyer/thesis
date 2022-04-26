@@ -7,5 +7,4 @@ class SGD:
     def forward(self, layer):
         #Simply substract derivative of weight and bias multiplied by the learning rate
         layer.weights = layer.weights - (self.lr * layer.weight_gradient)
-        print(layer.bias_gradient * self.lr)
         layer.biases = layer.biases - (self.lr * layer.bias_gradient)
