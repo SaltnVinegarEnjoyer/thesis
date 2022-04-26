@@ -23,6 +23,11 @@ class Model():
             inputs = layer.forward(inputs, train=False)
         return inputs
     
+    def calculate_loss(self, inputs, targets):
+        inputs = np.array(inputs)
+        targets = np.array(targets)
+        return(self.lossfun.forward(self.forward(inputs), targets))
+    
     def backward(self, inputs, targets, learning_rate = 0.1, optimizer = optimizer.SGD):
         #Initialize optimizer
         opt = optimizer(learning_rate)
