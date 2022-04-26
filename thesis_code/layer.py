@@ -52,7 +52,7 @@ class dense:
         #Find bias gradient for optimizing
         #Derivative of a bias calculation is always 1. By the chain rule, we just need to get the overall gradient that we got from the next layer and multiply it by 1.
         #We also need to add another dimension since we have lost one in the sum() function
-        self.bias_gradient = [np.sum(next_grad, axis=0)]
+        self.bias_gradient = np.array([np.sum(next_grad, axis=0)])
 
         #Return the input gradient for the previous layer
         return np.array(self.input_gradient)
