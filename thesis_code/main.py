@@ -1,7 +1,9 @@
+from operator import le
 import layer
 import actfun
 import lossfun
 import model
+import optimizer
 import numpy as np
 
 def checkLossFunctionality():
@@ -36,6 +38,7 @@ def checkModel():
     lay1 = layer.dense(5, 4, actfun.Softmax)
     mdl.addLayer(lay)
     mdl.addLayer(lay1)
+    optim = optimizer.SGD(learning_rate=0.01)
     print("Forward result: ", mdl.forward([[1,2,3], [4,5,1]]))
     mdl.backward([[1,2,3],[4,5,1]], [0,2])
     print("Layer 1 weight gradient, shape: row - set of weight derivatives as per 1 neuron:\n", mdl.layers[0].weight_gradient)
@@ -43,6 +46,7 @@ def checkModel():
     #Train the network usning just 3 data samples
     for epoch in range(1000):
         mdl.backward([[1,2,3],[4,5,1], [3,3,3]], [0,2,0])
+        optim.forward(mdl)
         print("Forward result: ", mdl.forward([[1,2,3], [4,5,6]]))
     #Notice the exponents value. Also, network now tries to predict 0th element 2 times harder than 2nd one
 
