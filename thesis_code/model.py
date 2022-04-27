@@ -58,9 +58,3 @@ class Model():
         for lay in range(len(self.layers)-2, -1, -1):
             #nextgrad - input gradient of next layer
             nextgrad = self.layers[lay].innerBackward(nextgrad)
-        
-        #Update parameters using optimizer
-        for lay in self.layers:
-            opt.forward(lay)
-
-
