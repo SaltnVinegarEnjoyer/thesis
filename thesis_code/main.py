@@ -1,57 +1,94 @@
-from operator import le
 import layer
-import actfun
-import lossfun
 import model
+import lossfun
 import optimizer
+import actfun
+
 import numpy as np
 
-def checkLossFunctionality():
-    a = np.array([[2.5, 0.0, 2, 8], [2.5, 0.0, 2, 8]])
-    b = np.array([[3, -0.5, 2, 7],[3, -0.5, 2, 7]])
-    loss = lossfun.MeanSquare()
-    print("Mean square error loss:")
-    print("Out: \n", a)
-    print("Target: \n", b)
-    print("Result: \n", loss.forward(a, b))
 
-    a = np.array([[0.1,1,0.9564], [0.1,0.1,1], [1,0.1,1], [0.56, 0.34, 0.9]])
-    b = np.array([[0,0,1], [0,0,1], [0,0,1], [1,0,0]])
-    loss = lossfun.CrossEnthropy()
-    print("Cross enthropy(one-hot encoded) loss:")
-    print("Out: \n", a)
-    print("Target: \n", b)
-    print("Result: \n", loss.forward(a, b))
+def mnist():
+    #Initialize the model with crossenthropy loss
+    mymodel = model.Model(lossfun.CrossEnthropy)
 
-    a = np.array([[0.1,1,0.9564], [0.1,0.1,0], [1,0.1,1], [0.56, 0.34, 0.9]])
-    b = np.array([2,2,2,0])
-    print("Cross enthropy(index encoded) loss:")
-    print("Out: \n", a)
-    print("Target: \n", b)
-    print("Result: \n", loss.forward(a, b))
+    #Create layers
+    dense1 = layer.Dense(784, 100, actfun.ReLu)
+    dense2 = layer.Dense(100, 50, actfun.ReLu)
+    dense3 = layer.Dense(50, 10, actfun.Softmax)
+
+    #Add layers to the model
+    mymodel.addLayer(dense1)
+    mymodel.addLayer(dense2)
+    mymodel.addLayer(dense3)
+
+    # Create optimizer
+    opt = optimizer.SGD(mymodel, learning_rate=1, decay=0.01)
+
+    #Open the mnist train csv file
+    mnist_file = open("C:\\path\\to\\mnist_train.csv")
+    #Read each line as row into the mnist_data array
+    mnist_data = mnist_file.readlines()
+    #Close the mnist file
+    mnist_file.close()
+
+    #Split each line(row(string) in mnist data) by comma
+    for img in mnist_data:
+        img = np.array(img.split(","))
+
+    #Array of class values
+    classes = []
+
+    #Go through each image in mnist_data
+    for image in range(len(mnist_data) - 1):
+        #Append new class value(see the mnist dataset structure)
+        classes.append(int(mnist_data[image][0]))
+        #We want to have neural network's inputs in the range of 0.01 - 0.99
+        mnist_data[image] = ((np.asfarray(mnist_data[image].split(",")[1:]) / 255.0 * 0.99) + 0.01)
 
 
-def checkModel():
-    mdl = model.Model()
-    mdl.setLoss(lossfun.CrossEnthropy)
-    lay = layer.dense(3, 5, actfun.Relu)
-    lay1 = layer.dense(5, 4, actfun.Softmax)
-    mdl.addLayer(lay)
-    mdl.addLayer(lay1)
-    optim = optimizer.SGD(learning_rate=0.01)
-    print("Forward result: ", mdl.forward([[1,2,3], [4,5,1]]))
-    mdl.backward([[1,2,3],[4,5,1]], [0,2])
-    print("Layer 1 weight gradient, shape: row - set of weight derivatives as per 1 neuron:\n", mdl.layers[0].weight_gradient)
-    print("Layer 2 weight gradient, shape: row - set of weight derivatives as per 1 neuron:\n", mdl.layers[1].weight_gradient)
-    #Train the network usning just 3 data samples
-    for epoch in range(1000):
-        mdl.backward([[1,2,3],[4,5,1], [3,3,3]], [0,2,0])
-        optim.forward(mdl)
-        print("Forward result: ", mdl.forward([[1,2,3], [4,5,6]]))
-    #Notice the exponents value. Also, network now tries to predict 0th element 2 times harder than 2nd one
+    #Set the batch size
+    bsize = 50
+    #Set the desired amount of epochs
+    epochs_amount = 30
+
+    # Train in loop
+    for epoch in range(epochs_amount):
+
+        #This is a raw solution. I will change the last bit later on
+        for imagen in range(0,(len(mnist_data)-1) - bsize,bsize):
+            #Get the arrays of images and classes
+            batch = mnist_data[imagen:imagen+bsize]
+            class_batch = classes[imagen:imagen+bsize]
+
+            #Get the network's predictions
+            result = mymodel.forward(batch)
+            #Get the most certain prediction
+            predictions = np.argmax(result, axis=1)
+            #Convert classes to numpy array
+            target = np.array(class_batch)
+            #Find the accuracy
+            accuracy = np.mean(predictions==target) * 100
+
+            #Uncomment to see the amount of right values
+            #strike = 0
+            #for a,b in zip(predictions, target):
+            #    if a == b:
+            #        strike += 1
+            #print("Amount of correct answers: ", strike, "/", bsize)
+
+            #Backpropagate the results
+            mymodel.backward(batch, target)
+
+            #Optimize network's parameters
+            opt.forward()
+        #Print the last batch results in the epoch
+        print("Epoch: ", epoch, "\tAccuracy in the last batch: ", int(accuracy), "%\tLoss: ", mymodel.calculate_loss(batch, target))
+        #Accuracy may be 100% while loss is not 0.
+        #This is due to the network being "uncertain"
 
 def main():
-    checkModel()
+    mnist()
+
 
 if __name__ == "__main__":
     main()
