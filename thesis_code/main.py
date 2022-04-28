@@ -3,6 +3,7 @@ import model
 import lossfun
 import optimizer
 import actfun
+import os
 
 import numpy as np
 
@@ -25,7 +26,7 @@ def mnist():
     opt = optimizer.SGD(mymodel, learning_rate=1, decay=0.01)
 
     #Open the mnist train csv file
-    mnist_file = open("C:\\path\\to\\mnist_train.csv")
+    mnist_file = open(os.sys.path[0] + "\\mnist_train.csv")
     #Read each line as row into the mnist_data array
     mnist_data = mnist_file.readlines()
     #Close the mnist file
