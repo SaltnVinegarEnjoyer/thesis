@@ -1,60 +1,59 @@
-import lossfun 
-import optimizer
 import numpy as np
 
 class Model():
-    def __init__(self):
+    def __init__(self, loss_function):
+        #Initialize the array that will hold layer objects
         self.layers = []
-
+        #Initialize the loss function
+        self.lossfun = loss_function()
 
     def addLayer(self, layer):
+        #Add layer to the array
         self.layers.append(layer)
-    
-    def setLoss(self, loss_function):
-        loss = loss_function()
-        self.lossfun = loss
-
 
     def forward(self, inputs):
         inputs = np.array(inputs)
+        #If the inputs are just 1 sample outside the batch, add 1 more dimension
         if inputs.shape == 1:
             inputs = np.reshape(inputs, (1, inputs.shape))
         for layer in self.layers:
-            inputs = layer.forward(inputs, train=False)
+            #Do a forward pass on the neurons(x*w + b)
+            layer.forward(inputs)
+            #Memorize activation function's output for next step/returning the prediction
+            inputs = layer.actfun.output
+        #Return last layer's activation function's output as the network prediction
         return inputs
     
+    #Get the loss from some sample
     def calculate_loss(self, inputs, targets):
         inputs = np.array(inputs)
         targets = np.array(targets)
         return(self.lossfun.forward(self.forward(inputs), targets))
     
-    def backward(self, inputs, targets, learning_rate = 0.1, optimizer = optimizer.SGD):
-        #Initialize optimizer
-        opt = optimizer(learning_rate)
-
-        #Transform inputs to needed form
+    def backward(self, inputs, targets):
+        #Transform inputs to needed form(batched)
         inputs = np.array(inputs)
         if inputs.shape == 1:
             inputs = np.reshape(inputs, (1, inputs.shape))
-        #Transform targets to needed form
+        #Transform targets to needed form(batched)
         targets = np.array(targets)
         if targets.shape == 1:
             targets = np.reshape(targets, (1, targets.shape))
+        
+        #Do a forward pass so that inputs and outputs of each layer are memorized
+        self.forward(inputs)
 
-        #Do a forward pass so that inputs of each layer is known
-        for layer in self.layers:
-            inputs = layer.forward(inputs, train=True)
-
-        #Calculate the loss gradient
-        loss_grad = self.lossfun.backward(inputs, targets)
+        #Calculate the loss gradient using output of the last layer's activation function and targets
+        self.lossfun.backward(self.layers[len(self.layers) - 1].actfun.output, targets)
 
         #The main operation is to find gradients of weights and biases for each of the neurons.
-        #innerBackward returns the gradient of an input so we can backpropagate next(previous) layer.
 
-        #Find the last layer gradient using loss gradient
-        nextgrad = self.layers[len(self.layers) - 1].innerBackward(loss_grad)
+        #Backpropagate through the last layer
+        self.layers[len(self.layers) - 1].backward(self.lossfun.input_gradient)
+
         #Go through each layer and backpropagate the gradient
         #Order: last -> first layer
         for lay in range(len(self.layers)-2, -1, -1):
-            #nextgrad - input gradient of next layer
-            nextgrad = self.layers[lay].innerBackward(nextgrad)
+            #Backpropagate through layer using next layer's input gradient
+            self.layers[lay].backward(self.layers[lay+1].input_gradient) 
+        

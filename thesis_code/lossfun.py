@@ -1,15 +1,13 @@
 import numpy as np
 
-
-#The gradients may be stored in the instances of loss functions themselves later on
-#I still haven't descided the architecture yet
-
 class MeanSquare:
     def forward(self, result, target):
         return ((target - result) ** 2).mean()
 
-class CrossEnthropy:
+class CrossEnthropy():
+
     def forward(self, result, target):
+
         #Check if target values are one-hot encoded.
         #If it is, convert it to index vector form
         if len(target.shape) == 2:
@@ -38,9 +36,7 @@ class CrossEnthropy:
   
         #Get an average value of array
         avg_loss = np.mean(loss)
-  
         return avg_loss
-
 
     def backward(self, result, target):
         #Gradient of a cross enthropy loss is -1 * (target/result), element-wise
@@ -50,20 +46,17 @@ class CrossEnthropy:
         if len(np.shape(target)) == 1:
             target_one_hot = []
             #Go through each set in a batch
-            for val in target:
+            for sample in target:
                 #Create empty array of the same size as result
                 one_hot = np.zeros(len(result[0]))
                 #Encode value at needed index to 1
-                one_hot[val] = 1
+                one_hot[sample] = 1
                 #Append new set to the array
                 target_one_hot.append(one_hot)
         else:
             target_one_hot = target
         
-        #Get the gradients
-        grad = -1 * (target_one_hot/result)
+        #Get the input gradients
+        self.input_gradient = -1 * (target_one_hot/result)
         #Normalize the gradient. This is needed since we are working with batches
-        grad = grad / len(result)
-
-        return np.array(grad)
-        
+        self.input_gradient = self.input_gradient / len(result)
