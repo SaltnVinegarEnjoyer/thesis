@@ -23,7 +23,7 @@ def mnist():
     mymodel.addLayer(dense3)
 
     # Create optimizer
-    opt = optimizer.SGD(mymodel, learning_rate=1, decay=0.01)
+    opt = optimizer.SGD(mymodel, learning_rate=1, decay=0.01, momentum=0.5)
 
     #Open the mnist train csv file
     mnist_file = open(os.sys.path[0] + "\\mnist_train.csv")

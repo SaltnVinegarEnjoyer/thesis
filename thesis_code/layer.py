@@ -11,6 +11,10 @@ class Dense:
         self.biases = np.zeros((1, outputs))
         #Now the activation function is received as an object
         self.actfun = actfun()
+        #Initialize the weight momentum for the optimization
+        self.weight_momentum = np.zeros_like(self.weights)
+        #Initialize the bias momentum for the optimization
+        self.bias_momentum = np.zeros_like(self.biases)
 
     # Forward pass
     def forward(self, inputs):
