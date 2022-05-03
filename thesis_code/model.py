@@ -56,4 +56,15 @@ class Model():
         for lay in range(len(self.layers)-2, -1, -1):
             #Backpropagate through layer using next layer's input gradient
             self.layers[lay].backward(self.layers[lay+1].input_gradient) 
-        
+    
+    def save_model(self, filename):
+        with open(filename, 'wb') as f:
+            for layer in self.layers:
+                np.save(f, layer.weights)
+                np.save(f, layer.biases)
+
+    def load_model(self, filename):
+        with open(filename, 'rb') as f:
+            for layer in self.layers:
+                layer.weights = np.load(f)
+                layer.biases = np.load(f)
