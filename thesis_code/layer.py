@@ -1,4 +1,5 @@
 import numpy as np
+from im2col import *
 
 class Dense:
 
@@ -53,3 +54,36 @@ class Dense:
         #Set the input gradient for further backpropagation
         #We need to transpose weights so that we are matching the shape of inputs(they are NOT transposed from the initialization)
         self.input_gradient = np.dot(self.actfun.input_gradient, self.weights.T)
+
+class Conv:
+    def __init__(self, img_dims, filters_amount, filter_size, stride, padding):
+        #img_dims is a tuple: (channels, height, width)
+        self.input_channels, self.input_height, self.input_width = img_dims
+        self.filters_amount = filters_amount
+        #We will allways have filters of n*n size, so we don't need to differentiate filter's height and width
+        self.filter_size = filter_size
+        self.stride = stride
+        self.padding = padding
+
+        #Initialize weights matrix
+        self.weights = 0.001 * np.random.randn(filters_amount, self.input_channels, filter_size, filter_size)
+        #Bias vector (1 bias per filter). We need additional dimension
+        self.bias = np.zeros((filters_amount, 1))
+        #Formula for finding the output dimensions:
+        #((input height - filter size + 2*padding) / stride) +1 x ((input_width - filter_size + 2*padding) / stride)+1
+        self.out_width = ((self.input_width - self.filter_size + 2*padding) / stride) + 1
+        self.out_height = ((self.input_height - self.filter_size + 2*padding) / stride) + 1
+
+
+    def forward(self, inputs):
+        #Memorize the inputs for backpropagation
+        self.inputs = inputs
+
+        #Transform inputs to matrix, where each column is a "convolutional place" of the image
+        self.inputs_colonized = im2col_indices(inputs, self.filter_size, self.filter_size, self.padding, self.stride)
+        #Transform weights to the matrix, where each column is a single set of filter's weights
+        weights_colonized = self.weights.reshape(self.filters_amount, self.input_channels * self.filter_size * self.filter_size)
+        #Apply filters(mutiply weights by the corresponding pixel value)
+        out = np.dot(weights_colonized, self.inputs_colonized) + self.bias
+        #Shape back the resulting matrix to normal image batch form
+        self.output = out.reshape(self.filters_amount, self.out_height, self.out_width, self.input_amount).transpose(3, 0, 1, 2)
