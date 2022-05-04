@@ -1,10 +1,10 @@
-This is a repository that contains the code for my final thesis  
+This is a repository that contains the code for my final thesis  .
 Link to the MNIST dataset in csv format: https://pjreddie.com/projects/mnist-in-csv/
 
 # Structure
 1. Model class, which is responcible for connecting all the parts of the code together.
 2. Layer class, which is responsible for processing the inputs using internal logic. Also calls the activation function.
-3. Activation function, which is responsible for taking inputs from the layer and apply special formula to produse the output.
+3. Activation function, which is responsible for taking inputs from the layer and apply special formula to produce the output.
 4. Loss function, which is used at the end of the neural network structure. It is used to calculate, how much of a deviation the model has made.
 5. Optimizer. It is used for updating the parameters of the model.
 # Order of the operation
