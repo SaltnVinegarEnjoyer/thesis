@@ -29,24 +29,8 @@ nms_threshold_subframe = 0.2
 probability_threshold_whole = 0.02
 nms_threshold_whole = 0.2
 
-#Function for processing the whole frame
-def process_frame(frame, model):
-    #New plan: 
-    #1. Divide each frame into 4 same-sized parts (or 9, since the objects are going to be also present on the sides of the subframes)
-    #2. Process each subframe
-    #3. Mathematically process each bbox to be relative to the whole frame
-    #4. Apply NMS on the resulting data
-
-    #Frame counter for saving the results
-    global frame_number_file
-    #Output layers of the network
-    global output_layers
-    #Save the frame itself 
-    cv2.imwrite(dir_path + str(frame_number_file) + ".jpg", frame)
-
-    #String for storing the output values
-    frame_boxes = ""
-
+#Returns 9 subframes of a frame, left-mid-right, top-mid-bot
+def getNineSubframes(frame):
     #Find frame's dimensions
     frame_height, frame_width, frame_channels = frame.shape
     #Array for storing the subframes
@@ -70,6 +54,30 @@ def process_frame(frame, model):
     subframes.append(frame[int(frame_height/2):frame_height, int(frame_width/4):int(frame_width/2 + frame_width/4)])
     #Bottom right
     subframes.append(frame[int(frame_height/2):frame_height, int(frame_width/2):frame_width])
+    return subframes
+
+#Function for processing the whole frame
+def process_frame(frame, model):
+    #New plan: 
+    #1. Divide each frame into 4 same-sized parts (or 9, since the objects are going to be also present on the sides of the subframes)
+    #2. Process each subframe
+    #3. Mathematically process each bbox to be relative to the whole frame
+    #4. Apply NMS on the resulting data
+
+    #Frame counter for saving the results
+    global frame_number_file
+    #Output layers of the network
+    global output_layers
+    #Save the frame itself 
+    cv2.imwrite(dir_path + str(frame_number_file) + ".jpg", frame)
+
+    #String for storing the output values
+    frame_boxes = ""
+
+    #Find frame's dimensions
+    frame_height, frame_width, frame_channels = frame.shape
+    #Array for storing the subframes
+    subframes = getNineSubframes(frame)
 
     #Conver all subframes into blobs
     for idx, subframe in enumerate(subframes):
