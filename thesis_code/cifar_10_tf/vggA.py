@@ -4,7 +4,10 @@ print("TensorFlow version:", tf.__version__)
 from tensorflow.keras.layers import Dense, Flatten, Conv2D, MaxPooling2D
 from tensorflow.keras import datasets, Model
 import numpy
+import matplotlib.pyplot as plt
+import time
 
+BATCH_AMOUNT = 8
 #Load the CIFAR10 dataset from the keras(will be changed later on)
 (x_train, y_train), (x_test, y_test) = datasets.cifar10.load_data()
 #Normalize the inputs to be on the scale 0.0-1.0
@@ -14,13 +17,14 @@ x_train, x_test = x_train / 255.0, x_test / 255.0
 #x_test = x_test[..., tf.newaxis].astype("float32")
 
 #Shuffle the inputs and put them in batches of 32 images per batch
-train_ds = tf.data.Dataset.from_tensor_slices((x_train, y_train)).shuffle(10000).batch(32)
+train_ds = tf.data.Dataset.from_tensor_slices((x_train, y_train)).shuffle(10000).batch(BATCH_AMOUNT)
 #Put test pictures in batches of 32. Shuffling will not take any effect, so we don't need to use it.
 test_ds = tf.data.Dataset.from_tensor_slices((x_test, y_test)).batch(1)
 
 #Create the vgg-like model
 class VGG_A(Model):
     def __init__(self):
+      #This is really strange, but there's enough memory to add more convolutional layers, but not a single 4096 dence one
         #Call the parent class initialization
         super(VGG_A, self).__init__()
         #Architecture could be found here, in Table #1
@@ -33,13 +37,13 @@ class VGG_A(Model):
         self.vgg_body.append(Conv2D(128, 3, activation='relu', padding="SAME"))
         self.vgg_body.append(MaxPooling2D((2,2)))
         self.vgg_body.append(Conv2D(256, 3, activation='relu', padding="SAME"))
-        self.vgg_body.append(Conv2D(256, 3, activation='relu', padding="SAME"))
+#        self.vgg_body.append(Conv2D(256, 3, activation='relu', padding="SAME"))
         self.vgg_body.append(MaxPooling2D((2,2)))
         self.vgg_body.append(Conv2D(512, 3, activation='relu', padding="SAME"))
-        self.vgg_body.append(Conv2D(512, 3, activation='relu', padding="SAME"))
+#        self.vgg_body.append(Conv2D(512, 3, activation='relu', padding="SAME"))
         self.vgg_body.append(MaxPooling2D((2,2)))
         self.vgg_body.append(Conv2D(512, 3, activation='relu', padding="SAME"))
-        self.vgg_body.append(Conv2D(512, 3, activation='relu', padding="SAME"))
+#        self.vgg_body.append(Conv2D(512, 3, activation='relu', padding="SAME"))
         self.vgg_body.append(MaxPooling2D((2,2)))
         
         #Array of latter VGG stages
@@ -47,7 +51,7 @@ class VGG_A(Model):
         self.vgg_head.append(Flatten())
         self.vgg_head.append(Dense(4096, activation='relu'))
         #The memory is just not enough to fit 1 last dense layer :c
-#        self.vgg_head.append(Dense(2048, activation='relu'))
+        #self.vgg_head.append(Dense(4096, activation='relu'))
         self.vgg_head.append(Dense(1000, activation='relu'))
         self.vgg_head.append(Dense(10, activation='softmax'))
 
@@ -113,6 +117,8 @@ def test_step(images, labels):
 #Amount of epochs
 EPOCHS = 5
 
+CHECK_EVERY = 100
+
 #Train the moden $EPOCHS times
 for epoch in range(EPOCHS):
     # Reset the metrics at the start of the next epoch
@@ -122,13 +128,42 @@ for epoch in range(EPOCHS):
     test_accuracy.reset_states()
 
     cnter = 0
+
+    accuracy_history = []
+    xdata = []
+ 
+    plt.show()
+    title = "Epoch " + str(epoch)
+    plt.title(title)
+    plt.xlabel("Batch number")
+    plt.ylabel("Accuracy")
+ 
+    #Define axes for plotting
+    axes = plt.gca()
+    axes.set_xlim(0, len(train_ds)/CHECK_EVERY)
+    axes.set_ylim(0, 100)
+    line, = axes.plot(xdata, accuracy_history, 'r-')
     for images, labels in train_ds:
       train_step(images, labels)
       cnter += 1
       #Update every 100 batches
-      if cnter % 100 == 0:
+      if cnter % CHECK_EVERY == 0:
         #Return the carriage, but don't go to the next line
-        print("Epoch: ", epoch, "\tCurrent loss: {:.3f}".format(train_loss.result().numpy()), "\tCurrent accuracy: {:.3f}%".format(train_accuracy.result().numpy() * 100), "\tBatches processed: {:.0f}".format(cnter), end="\r")
+        loss = train_loss.result().numpy()
+        accuracy = train_accuracy.result().numpy() * 100
+        print("Epoch: ", epoch, "\tCurrent loss: {:.3f}".format(loss), "\tCurrent accuracy: {:.3f}%".format(accuracy), "\tImages processed: {:.0f}".format(cnter * BATCH_AMOUNT), end="\r")
+        #Append new values to memory
+        accuracy_history.append(accuracy)
+        xdata.append(int(cnter/CHECK_EVERY))
+        #Plot the updated data
+        line.set_xdata(xdata)
+        line.set_ydata(accuracy_history)
+        plt.draw()
+        #Wait for updating the plot
+        plt.pause(0.1)
+        time.sleep(0.1)
+    #Close the plot for current epoch
+    plt.close()
 
     for test_images, test_labels in test_ds:
       test_step(test_images, test_labels)
