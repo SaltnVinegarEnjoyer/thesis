@@ -6,6 +6,7 @@ from tensorflow.keras import datasets, Model
 import numpy
 import matplotlib.pyplot as plt
 import time
+from datetime import datetime
 
 BATCH_AMOUNT = 8
 #Load the CIFAR10 dataset from the keras(will be changed later on)
@@ -175,7 +176,12 @@ for epoch in range(EPOCHS):
       f'Test Loss: {test_loss.result()}, '
       f'Test Accuracy: {test_accuracy.result() * 100}'
     )
-    print("\n")
+    # Save the weights
+    dateTimeObj = datetime.now()
+    checkpoint_name = "checkpoint_" + dateTimeObj.strftime("%d_%m_%Y__%H_%M_%S")
+    model.save_weights('./checkpoints/' + checkpoint_name)
+
+
 
 
 
