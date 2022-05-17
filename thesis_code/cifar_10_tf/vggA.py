@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import time
 from datetime import datetime
 
-BATCH_AMOUNT = 8
+BATCH_SIZE = 8
 #Load the CIFAR10 dataset from the keras(will be changed later on)
 (x_train, y_train), (x_test, y_test) = datasets.cifar10.load_data()
 #Normalize the inputs to be on the scale 0.0-1.0
@@ -18,7 +18,7 @@ x_train, x_test = x_train / 255.0, x_test / 255.0
 #x_test = x_test[..., tf.newaxis].astype("float32")
 
 #Shuffle the inputs and put them in batches of 32 images per batch
-train_ds = tf.data.Dataset.from_tensor_slices((x_train, y_train)).shuffle(10000).batch(BATCH_AMOUNT)
+train_ds = tf.data.Dataset.from_tensor_slices((x_train, y_train)).shuffle(10000).batch(BATCH_SIZE)
 #Put test pictures in batches of 32. Shuffling will not take any effect, so we don't need to use it.
 test_ds = tf.data.Dataset.from_tensor_slices((x_test, y_test)).batch(1)
 
@@ -152,7 +152,7 @@ for epoch in range(EPOCHS):
         #Return the carriage, but don't go to the next line
         loss = train_loss.result().numpy()
         accuracy = train_accuracy.result().numpy() * 100
-        print("Epoch: ", epoch, "\tCurrent loss: {:.3f}".format(loss), "\tCurrent accuracy: {:.3f}%".format(accuracy), "\tImages processed: {:.0f}".format(cnter * BATCH_AMOUNT), end="\r")
+        print("Epoch: ", epoch, "\tCurrent loss: {:.3f}".format(loss), "\tCurrent accuracy: {:.3f}%".format(accuracy), "\tImages processed: {:.0f}".format(cnter * BATCH_SIZE), end="\r")
         #Append new values to memory
         accuracy_history.append(accuracy)
         xdata.append(int(cnter/CHECK_EVERY))
