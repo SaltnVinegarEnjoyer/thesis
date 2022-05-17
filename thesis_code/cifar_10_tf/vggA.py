@@ -3,19 +3,20 @@ print("TensorFlow version:", tf.__version__)
 
 from tensorflow.keras.layers import Dense, Flatten, Conv2D, MaxPooling2D
 from tensorflow.keras import datasets, Model
+import numpy
 
 #Load the CIFAR10 dataset from the keras(will be changed later on)
 (x_train, y_train), (x_test, y_test) = datasets.cifar10.load_data()
 #Normalize the inputs to be on the scale 0.0-1.0
 x_train, x_test = x_train / 255.0, x_test / 255.0
 #Add another dimension for channels
-x_train = x_train[..., tf.newaxis].astype("float32")
-x_test = x_test[..., tf.newaxis].astype("float32")
+#x_train = x_train[..., tf.newaxis].astype("float32")
+#x_test = x_test[..., tf.newaxis].astype("float32")
 
 #Shuffle the inputs and put them in batches of 32 images per batch
-train_ds = tf.data.Dataset.from_tensor_slices((x_train, y_train)).shuffle(10000).batch(32)
+train_ds = tf.data.Dataset.from_tensor_slices((x_train, y_train)).shuffle(10000).batch(1)
 #Put test pictures in batches of 32. Shuffling will not take any effect, so we don't need to use it.
-test_ds = tf.data.Dataset.from_tensor_slices((x_test, y_test)).batch(32)
+test_ds = tf.data.Dataset.from_tensor_slices((x_test, y_test)).batch(1)
 
 #Create the vgg-like model
 class VGG_A(Model):
@@ -27,24 +28,25 @@ class VGG_A(Model):
         
         #An array, where we will store VGG convolutional body
         self.vgg_body = []
-        self.vgg_body.append(Conv2D(64, 3, activation='relu', padding="SAME"))
-        self.vgg_body.append(MaxPooling2D((2,2)))
-        self.vgg_body.append(Conv2D(128, 3, activation='relu', padding="SAME"))
+        self.vgg_body.append(Conv2D(64, 3, activation='relu', padding="SAME", input_shape=(1,32,32,3)))
+#        self.vgg_body.append(MaxPooling2D((2,2)))
+#        self.vgg_body.append(Conv2D(128, 3, activation='relu', padding="SAME"))
         self.vgg_body.append(MaxPooling2D((2,2)))
         self.vgg_body.append(Conv2D(256, 3, activation='relu', padding="SAME"))
-        self.vgg_body.append(Conv2D(256, 3, activation='relu', padding="SAME"))
+#        self.vgg_body.append(Conv2D(256, 3, activation='relu', padding="SAME"))
         self.vgg_body.append(MaxPooling2D((2,2)))
         self.vgg_body.append(Conv2D(512, 3, activation='relu', padding="SAME"))
-        self.vgg_body.append(Conv2D(512, 3, activation='relu', padding="SAME"))
+#        self.vgg_body.append(Conv2D(512, 3, activation='relu', padding="SAME"))
         self.vgg_body.append(MaxPooling2D((2,2)))
-        self.vgg_body.append(Conv2D(512, 3, activation='relu', padding="SAME"))
-        self.vgg_body.append(Conv2D(512, 3, activation='relu', padding="SAME"))
+#        self.vgg_body.append(Conv2D(512, 3, activation='relu', padding="SAME"))
+#        self.vgg_body.append(Conv2D(512, 3, activation='relu', padding="SAME"))
+#        self.vgg_body.append(MaxPooling2D((2,2)))
         
         #Array of latter VGG stages
         self.vgg_head = []
         self.vgg_head.append(Flatten())
-        self.vgg_head.append(Dense(4096, activation='relu'))
-        self.vgg_head.append(Dense(4096, activation='relu'))
+#        self.vgg_head.append(Dense(4096, activation='relu'))
+#        self.vgg_head.append(Dense(4096, activation='relu'))
         self.vgg_head.append(Dense(1000, activation='relu'))
         self.vgg_head.append(Dense(10, activation='softmax'))
 
@@ -61,7 +63,7 @@ model = VGG_A()
 #Create the loss object
 loss_object = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
 #Create the optimizer
-optimizer = tf.keras.optimizers.Adam()
+optimizer = tf.keras.optimizers.SGD()
 
 
 #The metrics that will show the loss during training process
@@ -118,8 +120,14 @@ for epoch in range(EPOCHS):
     test_loss.reset_states()
     test_accuracy.reset_states()
 
+    cnter = 0
     for images, labels in train_ds:
       train_step(images, labels)
+      cnter += 1
+      #Update every 100 batches
+      if cnter % 100 == 0:
+        #Return the carriage, but don't go to the next line
+        print("Epoch: ", epoch, "\tCurrent loss: {:.3f}".format(train_loss.result().numpy()), "\tCurrent accuracy: {:.3f}%".format(train_accuracy.result().numpy() * 100), "\tBatches processed: {:.0f}".format(cnter), end="\r")
 
     for test_images, test_labels in test_ds:
       test_step(test_images, test_labels)
@@ -131,6 +139,7 @@ for epoch in range(EPOCHS):
       f'Test Loss: {test_loss.result()}, '
       f'Test Accuracy: {test_accuracy.result() * 100}'
     )
+    print("\n")
 
 
 
