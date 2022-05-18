@@ -11,7 +11,7 @@ from datetime import datetime
 
 print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
-BATCH_SIZE = 8
+BATCH_SIZE = 32
 #Load the CIFAR10 dataset from the keras(will be changed later on)
 #Now i want to repeatively create batched datasets due to lack of memory
 (x_train, y_train), (x_test, y_test) = datasets.cifar10.load_data()
@@ -41,21 +41,21 @@ class VGG_A(Model):
         self.vgg_body.append(MaxPooling2D((2,2)))
         self.vgg_body.append(Conv2D(256, 3, activation='relu', padding="SAME"))
 #        self.vgg_body.append(Conv2D(256, 3, activation='relu', padding="SAME"))
-        self.vgg_body.append(MaxPooling2D((2,2)))
-        self.vgg_body.append(Conv2D(512, 3, activation='relu', padding="SAME"))
+#        self.vgg_body.append(MaxPooling2D((2,2)))
 #        self.vgg_body.append(Conv2D(512, 3, activation='relu', padding="SAME"))
-        self.vgg_body.append(MaxPooling2D((2,2)))
-        self.vgg_body.append(Conv2D(512, 3, activation='relu', padding="SAME"))
 #        self.vgg_body.append(Conv2D(512, 3, activation='relu', padding="SAME"))
-        self.vgg_body.append(MaxPooling2D((2,2)))
+#        self.vgg_body.append(MaxPooling2D((2,2)))
+#        self.vgg_body.append(Conv2D(512, 3, activation='relu', padding="SAME"))
+#        self.vgg_body.append(Conv2D(512, 3, activation='relu', padding="SAME"))
+#        self.vgg_body.append(MaxPooling2D((2,2)))
         
         #Array of latter VGG stages
         self.vgg_head = []
         self.vgg_head.append(Flatten())
         self.vgg_head.append(Dense(4096, activation='relu'))
         #The memory is just not enough to fit 1 last dense layer :c
-        self.vgg_head.append(Dense(4096, activation='relu'))
-        self.vgg_head.append(Dense(1000, activation='relu'))
+#        self.vgg_head.append(Dense(4096, activation='relu'))
+#        self.vgg_head.append(Dense(1000, activation='relu'))
         self.vgg_head.append(Dense(10, activation='softmax'))
 
     def call(self, x):
@@ -120,13 +120,37 @@ def test_step(images, labels):
 #Amount of epochs
 EPOCHS = 5
 
-CHECK_EVERY = 100
+CHECK_EVERY = 10
 
 DEN = 500 #Len of subdataset
 
 batch_index = 0
+
+#Define memory arrays for plotting
+accuracy_history_full = []
+accuracy_history_epoch = []
+xdata_full = []
+xdata_epoch = []
+
+
+fig, (ax1, ax2) = plt.subplots(1, 2)
+fig.suptitle('Horizontally stacked subplots')
+ax1.set_title("Overall progress")
+ax1.set_xlabel("Batches processed")
+ax1.set_ylabel("Accuracy")
+
 #Train the moden $EPOCHS times
 for epoch in range(EPOCHS):
+    #Clear the epoch plot
+    ax2.clear()
+
+    accuracy_history_epoch = []
+    xdata_epoch = []
+
+    ax2.set_title("Epoch progress")
+    ax2.set_xlabel("Batches processed")
+    ax2.set_ylabel("Accuracy")
+
     batch_index = 0
     # Reset the metrics at the start of the next epoch
     train_loss.reset_states()
@@ -134,21 +158,6 @@ for epoch in range(EPOCHS):
     test_loss.reset_states()
     test_accuracy.reset_states()
 
-
-    accuracy_history = []
-    xdata = []
- 
-    plt.show()
-    title = "Epoch " + str(epoch)
-    plt.title(title)
-    plt.xlabel("Batch number")
-    plt.ylabel("Accuracy")
- 
-    #Define axes for plotting
-    axes = plt.gca()
-    axes.set_xlim(0, (int(len(x_train)/BATCH_SIZE)/CHECK_EVERY)-1)#len(train_ds)/CHECK_EVERY)
-    axes.set_ylim(0, 100)
-    line, = axes.plot(xdata, accuracy_history, 'r-')
 
     #Let's divide the datasets into subdatasets, len/den each
     for subdataset_index in range(int(len(x_train)/DEN)-1):
@@ -159,7 +168,7 @@ for epoch in range(EPOCHS):
 
         #Shuffle the inputs and put them in batches of 32 images per batch
         train_ds = tf.data.Dataset.from_tensor_slices((x_train_sub, y_train_sub))
-        train_ds = train_ds.shuffle(100)
+        train_ds = train_ds.shuffle(10000)
         train_ds = train_ds.batch(BATCH_SIZE)
         for images, labels in train_ds:
             train_step(images, labels)
@@ -170,19 +179,18 @@ for epoch in range(EPOCHS):
                 loss = train_loss.result().numpy()
                 accuracy = train_accuracy.result().numpy() * 100
                 #Return the carriage, but don't go to the next line
-                print("Epoch: ", epoch, "\tCurrent loss: {:.3f}".format(loss), "\tCurrent accuracy: {:.3f}%".format(accuracy), "\tImages processed: {:.0f}".format(batch_index * BATCH_SIZE), end="\r")
+                print("Epoch: ", epoch, "\tCurrent loss: {:.3f}".format(loss), "\tCurrent accuracy: {:.3f}%".format(accuracy), "\tImages processed: {:.0f}".format((batch_index-1) * BATCH_SIZE), end="\r")
                 #Append new values to memory
-                accuracy_history.append(accuracy)
-                xdata.append(int(batch_index/CHECK_EVERY))
-                #Plot the updated data
-                line.set_xdata(xdata)
-                line.set_ydata(accuracy_history)
-                plt.draw()
-                #Wait for updating the plot
+                accuracy_history_epoch.append(accuracy)
+                xdata_epoch.append(int(batch_index/CHECK_EVERY))
+                accuracy_history_full.append(accuracy)
+                if len(xdata_full) == 0:
+                    xdata_full.append(0)
+                else:
+                    xdata_full.append(xdata_full[-1]+1)
+                ax1.plot(xdata_full, accuracy_history_full, color='r')
+                ax2.plot(xdata_epoch, accuracy_history_epoch, color='b')
                 plt.pause(0.1)
-                time.sleep(0.1)
-    #Close the plot for current epoch
-    plt.close()
 
     for test_images, test_labels in test_ds:
         test_step(test_images, test_labels)
