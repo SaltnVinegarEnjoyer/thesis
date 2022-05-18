@@ -8,9 +8,16 @@ import matplotlib.pyplot as plt
 import time
 from datetime import datetime
 
-BATCH_SIZE = 8
+
+print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+
+BATCH_SIZE = 2
 #Load the CIFAR10 dataset from the keras(will be changed later on)
+#Now i want to repeatively create batched datasets due to lack of memory
 (x_train, y_train), (x_test, y_test) = datasets.cifar10.load_data()
+x_train = x_train[0:2000]
+y_train = y_train[0:2000]
+print(tf.shape(x_train))
 #Normalize the inputs to be on the scale 0.0-1.0
 x_train, x_test = x_train / 255.0, x_test / 255.0
 #Add another dimension for channels
@@ -52,7 +59,7 @@ class VGG_A(Model):
         self.vgg_head.append(Flatten())
         self.vgg_head.append(Dense(4096, activation='relu'))
         #The memory is just not enough to fit 1 last dense layer :c
-        #self.vgg_head.append(Dense(4096, activation='relu'))
+        self.vgg_head.append(Dense(4096, activation='relu'))
         self.vgg_head.append(Dense(1000, activation='relu'))
         self.vgg_head.append(Dense(10, activation='softmax'))
 
@@ -122,6 +129,9 @@ CHECK_EVERY = 100
 
 #Train the moden $EPOCHS times
 for epoch in range(EPOCHS):
+    #Let's divide the datasets into subdatasets, len/den each
+    den = 200 #Subdatasets per dataset
+    subdataset_index = 0
     # Reset the metrics at the start of the next epoch
     train_loss.reset_states()
     train_accuracy.reset_states()
