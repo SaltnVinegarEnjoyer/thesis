@@ -3,7 +3,7 @@ print("TensorFlow version:", tf.__version__)
 
 from tensorflow.keras.layers import Dense, Flatten, Conv2D, MaxPooling2D
 from tensorflow.keras import datasets, Model
-import numpy
+import numpy as np
 import matplotlib.pyplot as plt
 import time
 from datetime import datetime
@@ -11,7 +11,7 @@ from datetime import datetime
 
 print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
-BATCH_SIZE = 2
+BATCH_SIZE = 8
 #Load the CIFAR10 dataset from the keras(will be changed later on)
 #Now i want to repeatively create batched datasets due to lack of memory
 (x_train, y_train), (x_test, y_test) = datasets.cifar10.load_data()
@@ -21,8 +21,6 @@ x_train, x_test = x_train / 255.0, x_test / 255.0
 #x_train = x_train[..., tf.newaxis].astype("float32")
 #x_test = x_test[..., tf.newaxis].astype("float32")
 
-#Shuffle the inputs and put them in batches of 32 images per batch
-train_ds = tf.data.Dataset.from_tensor_slices((x_train, y_train)).shuffle(10000).batch(BATCH_SIZE)
 #Put test pictures in batches of 32. Shuffling will not take any effect, so we don't need to use it.
 test_ds = tf.data.Dataset.from_tensor_slices((x_test, y_test)).batch(1)
 
@@ -124,15 +122,18 @@ EPOCHS = 5
 
 CHECK_EVERY = 100
 
+DEN = 500 #Len of subdataset
+
+batch_index = 0
 #Train the moden $EPOCHS times
 for epoch in range(EPOCHS):
+    batch_index = 0
     # Reset the metrics at the start of the next epoch
     train_loss.reset_states()
     train_accuracy.reset_states()
     test_loss.reset_states()
     test_accuracy.reset_states()
 
-    batch_index = 0
 
     accuracy_history = []
     xdata = []
@@ -145,21 +146,21 @@ for epoch in range(EPOCHS):
  
     #Define axes for plotting
     axes = plt.gca()
-    axes.set_xlim(0, len(train_ds)/CHECK_EVERY)
+    axes.set_xlim(0, (int(len(x_train)/BATCH_SIZE)/CHECK_EVERY)-1)#len(train_ds)/CHECK_EVERY)
     axes.set_ylim(0, 100)
     line, = axes.plot(xdata, accuracy_history, 'r-')
 
     #Let's divide the datasets into subdatasets, len/den each
-    den = 200 #Subdatasets per dataset
-    for subdataset_index in range((len(x_test)/den)-1):
-
+    for subdataset_index in range(int(len(x_train)/DEN)-1):
         #Get subdatasets
-        x_train_sub = x_train[subdataset_index*den:(subdataset_index+1)*den]
-        y_train_sub = y_train[subdataset_index*den:(subdataset_index+1)*den]
+        x_train_sub = x_train[subdataset_index*DEN:(subdataset_index+1)*DEN]
+        y_train_sub = y_train[subdataset_index*DEN:(subdataset_index+1)*DEN]
+#        print(subdataset_index)
 
         #Shuffle the inputs and put them in batches of 32 images per batch
-        train_ds = tf.data.Dataset.from_tensor_slices((x_train_sub, y_train_sub)).shuffle(10000).batch(BATCH_SIZE)
-
+        train_ds = tf.data.Dataset.from_tensor_slices((x_train_sub, y_train_sub))
+        train_ds = train_ds.shuffle(100)
+        train_ds = train_ds.batch(BATCH_SIZE)
         for images, labels in train_ds:
             train_step(images, labels)
             batch_index += 1
@@ -184,7 +185,7 @@ for epoch in range(EPOCHS):
     plt.close()
 
     for test_images, test_labels in test_ds:
-      test_step(test_images, test_labels)
+        test_step(test_images, test_labels)
 
     print(
       f'Epoch {epoch + 1}, '
