@@ -6,12 +6,14 @@ from tensorflow.keras import datasets, Model
 import numpy as np
 import matplotlib.pyplot as plt
 import time
+import random
 from datetime import datetime
 
 
 print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
-BATCH_SIZE = 32
+cifar_labels = ['airplane', 'auto', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+BATCH_SIZE = 64
 #Load the CIFAR10 dataset from the keras(will be changed later on)
 #Now i want to repeatively create batched datasets due to lack of memory
 (x_train, y_train), (x_test, y_test) = datasets.cifar10.load_data()
@@ -40,22 +42,21 @@ class VGG_A(Model):
         self.vgg_body.append(Conv2D(128, 3, activation='relu', padding="SAME"))
         self.vgg_body.append(MaxPooling2D((2,2)))
         self.vgg_body.append(Conv2D(256, 3, activation='relu', padding="SAME"))
-#        self.vgg_body.append(Conv2D(256, 3, activation='relu', padding="SAME"))
-#        self.vgg_body.append(MaxPooling2D((2,2)))
-#        self.vgg_body.append(Conv2D(512, 3, activation='relu', padding="SAME"))
-#        self.vgg_body.append(Conv2D(512, 3, activation='relu', padding="SAME"))
-#        self.vgg_body.append(MaxPooling2D((2,2)))
-#        self.vgg_body.append(Conv2D(512, 3, activation='relu', padding="SAME"))
-#        self.vgg_body.append(Conv2D(512, 3, activation='relu', padding="SAME"))
-#        self.vgg_body.append(MaxPooling2D((2,2)))
+        self.vgg_body.append(Conv2D(256, 3, activation='relu', padding="SAME"))
+        self.vgg_body.append(MaxPooling2D((2,2)))
+        self.vgg_body.append(Conv2D(512, 3, activation='relu', padding="SAME"))
+        self.vgg_body.append(Conv2D(512, 3, activation='relu', padding="SAME"))
+        self.vgg_body.append(MaxPooling2D((2,2)))
+        self.vgg_body.append(Conv2D(512, 3, activation='relu', padding="SAME"))
+        self.vgg_body.append(Conv2D(512, 3, activation='relu', padding="SAME"))
+        self.vgg_body.append(MaxPooling2D((2,2)))
         
         #Array of latter VGG stages
         self.vgg_head = []
         self.vgg_head.append(Flatten())
         self.vgg_head.append(Dense(4096, activation='relu'))
-        #The memory is just not enough to fit 1 last dense layer :c
-#        self.vgg_head.append(Dense(4096, activation='relu'))
-#        self.vgg_head.append(Dense(1000, activation='relu'))
+        self.vgg_head.append(Dense(4096, activation='relu'))
+        self.vgg_head.append(Dense(1000, activation='relu'))
         self.vgg_head.append(Dense(10, activation='softmax'))
 
     def call(self, x):
@@ -115,14 +116,15 @@ def test_step(images, labels):
     test_loss(t_loss)
     #Get the accuracy
     test_accuracy(labels, predictions)
+    return predictions
 
 
 #Amount of epochs
-EPOCHS = 5
+EPOCHS = 50
 
-CHECK_EVERY = 10
+CHECK_EVERY = 100
 
-DEN = 500 #Len of subdataset
+DEN = 1000 #Len of subdataset
 
 batch_index = 0
 
@@ -132,8 +134,14 @@ accuracy_history_epoch = []
 xdata_full = []
 xdata_epoch = []
 
+IMG_ROWS = 3
+IMG_COLS = 10
 
 fig, (ax1, ax2) = plt.subplots(1, 2)
+fig_imgs, imgs = plt.subplots(IMG_ROWS, IMG_COLS)
+
+fig_imgs.set_size_inches(20, 20)
+
 fig.suptitle('Horizontally stacked subplots')
 ax1.set_title("Overall progress")
 ax1.set_xlabel("Batches processed")
@@ -141,6 +149,7 @@ ax1.set_ylabel("Accuracy")
 
 #Train the moden $EPOCHS times
 for epoch in range(EPOCHS):
+    fig_imgs.suptitle('Test results at epoch ' + str(epoch))
     #Clear the epoch plot
     ax2.clear()
 
@@ -190,10 +199,25 @@ for epoch in range(EPOCHS):
                     xdata_full.append(xdata_full[-1]+1)
                 ax1.plot(xdata_full, accuracy_history_full, color='r')
                 ax2.plot(xdata_epoch, accuracy_history_epoch, color='b')
-                plt.pause(0.1)
+                plt.pause(0.5)
 
+    predicts = []
     for test_images, test_labels in test_ds:
-        test_step(test_images, test_labels)
+        predicts.append(test_step(test_images, test_labels))
+
+    for idx_row in range(len(imgs)):
+        for idx_col in range(len(imgs[idx_row])):
+            idx_pred = random.randint(0, len(x_test)-1)
+            imgs[idx_row][idx_col].imshow(x_test[idx_pred])
+            imgs[idx_row][idx_col].axis('off')
+            idx_of_max_prob_prediction = np.argmax(predicts[idx_pred])
+            if y_test[idx_pred] == idx_of_max_prob_prediction: 
+                imgs[idx_row][idx_col].set_title(cifar_labels[idx_of_max_prob_prediction], color="green")
+            else:
+                imgs[idx_row][idx_col].set_title(cifar_labels[idx_of_max_prob_prediction], color="red")
+    
+    fig_imgs.savefig('epoch' + str(epoch) + '.png')
+
 
     print(
       f'Epoch {epoch + 1}, '
