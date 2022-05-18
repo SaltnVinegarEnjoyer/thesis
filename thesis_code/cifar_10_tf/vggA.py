@@ -15,9 +15,6 @@ BATCH_SIZE = 2
 #Load the CIFAR10 dataset from the keras(will be changed later on)
 #Now i want to repeatively create batched datasets due to lack of memory
 (x_train, y_train), (x_test, y_test) = datasets.cifar10.load_data()
-x_train = x_train[0:2000]
-y_train = y_train[0:2000]
-print(tf.shape(x_train))
 #Normalize the inputs to be on the scale 0.0-1.0
 x_train, x_test = x_train / 255.0, x_test / 255.0
 #Add another dimension for channels
@@ -129,16 +126,13 @@ CHECK_EVERY = 100
 
 #Train the moden $EPOCHS times
 for epoch in range(EPOCHS):
-    #Let's divide the datasets into subdatasets, len/den each
-    den = 200 #Subdatasets per dataset
-    subdataset_index = 0
     # Reset the metrics at the start of the next epoch
     train_loss.reset_states()
     train_accuracy.reset_states()
     test_loss.reset_states()
     test_accuracy.reset_states()
 
-    cnter = 0
+    batch_index = 0
 
     accuracy_history = []
     xdata = []
@@ -154,25 +148,38 @@ for epoch in range(EPOCHS):
     axes.set_xlim(0, len(train_ds)/CHECK_EVERY)
     axes.set_ylim(0, 100)
     line, = axes.plot(xdata, accuracy_history, 'r-')
-    for images, labels in train_ds:
-      train_step(images, labels)
-      cnter += 1
-      #Update every 100 batches
-      if cnter % CHECK_EVERY == 0:
-        #Return the carriage, but don't go to the next line
-        loss = train_loss.result().numpy()
-        accuracy = train_accuracy.result().numpy() * 100
-        print("Epoch: ", epoch, "\tCurrent loss: {:.3f}".format(loss), "\tCurrent accuracy: {:.3f}%".format(accuracy), "\tImages processed: {:.0f}".format(cnter * BATCH_SIZE), end="\r")
-        #Append new values to memory
-        accuracy_history.append(accuracy)
-        xdata.append(int(cnter/CHECK_EVERY))
-        #Plot the updated data
-        line.set_xdata(xdata)
-        line.set_ydata(accuracy_history)
-        plt.draw()
-        #Wait for updating the plot
-        plt.pause(0.1)
-        time.sleep(0.1)
+
+    #Let's divide the datasets into subdatasets, len/den each
+    den = 200 #Subdatasets per dataset
+    for subdataset_index in range((len(x_test)/den)-1):
+
+        #Get subdatasets
+        x_train_sub = x_train[subdataset_index*den:(subdataset_index+1)*den]
+        y_train_sub = y_train[subdataset_index*den:(subdataset_index+1)*den]
+
+        #Shuffle the inputs and put them in batches of 32 images per batch
+        train_ds = tf.data.Dataset.from_tensor_slices((x_train_sub, y_train_sub)).shuffle(10000).batch(BATCH_SIZE)
+
+        for images, labels in train_ds:
+            train_step(images, labels)
+            batch_index += 1
+            #Update every n batches
+            if batch_index % CHECK_EVERY == 0:
+                #Get loss and accuracy values from the last batch processing
+                loss = train_loss.result().numpy()
+                accuracy = train_accuracy.result().numpy() * 100
+                #Return the carriage, but don't go to the next line
+                print("Epoch: ", epoch, "\tCurrent loss: {:.3f}".format(loss), "\tCurrent accuracy: {:.3f}%".format(accuracy), "\tImages processed: {:.0f}".format(batch_index * BATCH_SIZE), end="\r")
+                #Append new values to memory
+                accuracy_history.append(accuracy)
+                xdata.append(int(batch_index/CHECK_EVERY))
+                #Plot the updated data
+                line.set_xdata(xdata)
+                line.set_ydata(accuracy_history)
+                plt.draw()
+                #Wait for updating the plot
+                plt.pause(0.1)
+                time.sleep(0.1)
     #Close the plot for current epoch
     plt.close()
 
