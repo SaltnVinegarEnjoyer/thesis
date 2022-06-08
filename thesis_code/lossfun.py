@@ -4,7 +4,7 @@ class MeanSquare:
     def forward(self, result, target):
         return ((target - result) ** 2).mean()
 
-class CrossEnthropy():
+class CategoricalCrossEntropy():
 
     def forward(self, result, target):
 
