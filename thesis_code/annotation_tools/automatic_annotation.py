@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
 
-#TODO: Create a classes.txt, duplicate 0th frame for further static objects labels propogation
 #Load a pretrained tiny yolo network
 #YOLO-608 works best
 #Link: https://pjreddie.com/darknet/yolo/
@@ -25,23 +24,23 @@ frame_number_file = 0
 #Define thresholds for the subframe level
 probability_threshold_subframe = 0.01
 nms_threshold_subframe = 0.2
-
 #Define thresholds for the frame level
 probability_threshold_whole = 0.02
 nms_threshold_whole = 0.2
 
-#Returns 9 subframes of a frame, left-mid-right, top-mid-bot
+#Returns 9 subframes of a frame: left-mid-right, top-mid-bot
 def getNineSubframes(frame):
     #Find frame's dimensions
     frame_height, frame_width, frame_channels = frame.shape
-    #Array for storing the subframes
+    #Array for storing subframes
     subframes = []
     #Now we need to get parts of the image
-    #The step is going to be 1 quarter for both width and height
+    #There will be 9 subframes total
+    #The subframe step is going to be 1 quarter for both width and height
     for height_pos in np.arange(0.25,1.0,0.25):
         for width_pos in np.arange(0.25,1.0,0.25):
             #Append a new subframe to an array
-            subframes.append(frame[int(frame_height * (height_pos-0.25)):int(frame_height * height_pos), int(frame_width * (width_pos-0.25)):int(frame_width * width_pos)])
+            subframes.append(frame[int(frame_height * (height_pos-0.25)):int(frame_height * (height_pos + 0.25)), int(frame_width * (width_pos-0.25)):int(frame_width * (width_pos + 0.25))])
     #Return the resulting array of subframes
     return subframes
 
@@ -53,30 +52,29 @@ def process_frame(frame, model):
     #3. Mathematically process each bbox to be relative to the whole frame
     #4. Apply NMS on the resulting data
 
-    #Frame counter for saving the results
+    #Frame counter for saving results
     global frame_number_file
     #Output layers of the network
     global output_layers
     #Save the frame itself 
     cv2.imwrite(dir_path + str(frame_number_file) + ".jpg", frame)
 
-    #String for storing the output values
+    #String for storing the output values. Is going to be printed in a file
     frame_boxes = ""
-
     #Find frame's dimensions
     frame_height, frame_width, frame_channels = frame.shape
-    #Array for storing the subframes
+    #Array of frame's subframes
     subframes = getNineSubframes(frame)
 
     #Conver all subframes into blobs
     for idx, subframe in enumerate(subframes):
         subframes[idx] = cv2.dnn.blobFromImage(subframe, 1/255, (416, 416), [0,0,0], 1, crop=False) 
 
-    #A holder for the subframes's bbox outputs(same order)
+    #A holder for the subframes' bbox outputs(same order)
     bboxes_from_subframes = []
-    #A holder for the subframes's class outputs(same order)
+    #A holder for the subframes' class outputs(same order)
     classes_from_subframes = []
-    #A holder for the subframes's confidences outputs(same order)
+    #A holder for the subframes' confidences outputs(same order)
     confidences_from_subframes = []
 
     #Process each subframe, e.g. forward each subframe through YOLO and store the results
@@ -112,7 +110,7 @@ def process_frame(frame, model):
             bboxes[idx1][1] = bbox[1] * 0.5 + cy
             bboxes[idx1][2] = bbox[2] * 0.5 
             bboxes[idx1][3] = bbox[3] * 0.5 
-        #No need to save new bbox since we were working with addresses
+        #No need to save new bbox since we were working with pointers
         #Shift the width offset
         cx += 0.25
         #If the width offset is bigger than 0.5, change to the next row
@@ -124,7 +122,7 @@ def process_frame(frame, model):
     
     #Now it's time to apply non-maxima surpression. It will delete bboxes of objects that were detected on multiple subframes
     #But before that, we need to flatten the bboxes, classes and confidences arrays to not to have a subframe dimension
-    #This may be converted to the beautiful numpy code, but let it be like that for now
+    #Array of frame's bounding boxes
     global_bboxes = []
     #Go through each subframe
     for subframe_bboxes in bboxes_from_subframes:
@@ -133,6 +131,7 @@ def process_frame(frame, model):
             #Append bbox to the global bbox array
             global_bboxes.append(bbox)
 
+    #Array of frame's classes
     global_classes = []
     #Go throug each subframe
     for subframe_classes in classes_from_subframes:
@@ -141,20 +140,20 @@ def process_frame(frame, model):
             #Append class to the global class array
             global_classes.append(classs)
 
+    #Array of frame's confidences
     confidencess = []
     #Go through each subframe
     for subframe_confidencess in confidences_from_subframes:
-        #Go throug each confidence
+        #Go through each confidence
         for confidence in subframe_confidencess:
-            #Append confidences to the global confidences array
+            #Append confidence to the global confidences array
             confidencess.append(confidence)
 
     #Apply the non maxima surpression on all of the bounding boxes.
     #This will remove all the excessive bboxes that were foung on the sides of subframes
     nms_indexes = cv2.dnn.NMSBoxes(global_bboxes, confidencess, probability_threshold_whole, nms_threshold_whole)
 
-
-    #Go through each index that survived NMS annihilation
+    #Go through each index that was chosen via NMS
     for i in nms_indexes:
         #Get the bounding box
         box = global_bboxes[i]
@@ -168,8 +167,9 @@ def process_frame(frame, model):
         frame_boxes += str(box[2]) + " "
         frame_boxes += str(box[3]) + " "
         frame_boxes += '\n'
+
         #I also want to show the bounding boxes for visual inspection during processing
-        #Scale them(values are in 0-1 format, need to multiply by original w and h)
+        #First step is to scale them(values are in 0-1 format, need to multiply by original w and h)
         #Reformat center coordinates from relative format to pixel format
         cx = int(box[0] * frame_width)
         cy = int(box[1] * frame_height)
@@ -192,11 +192,11 @@ def process_frame(frame, model):
     #Now i want to save the file that contains generated annotations
     #Open/create a new txt file with a processed frame's number as name
     f = open(dir_path + str(frame_number_file) + ".txt", 'w')
-    #Write all the (class, cx, cy, w, h) to the file
+    #Write all the detections to the file
     f.write(frame_boxes)
     #Close the file
     f.close
-    #Increment processed frame's counter
+    #Increment processed frames counter
     frame_number_file += 1
 
     #Show the image with all the resulting bounding boxes
@@ -220,20 +220,20 @@ def process_subframe(out):
             max_class = 0
             #We only want to know certain classes
             for clss in interested_classes:
-                #We need to add 4 to the index, since first 5 values are the bounding box properties(cx,cy,w,h,probability that there is a object at all)
-                #If confused: Indexsing of arrays start from 0, and indexing of COCO classes starts from 1, which gives index of 5 for the first class(person)
+                #We need to add 4 to the index, since first 5 values are the bounding box properties(cx,cy,w,h,probability that there is an object at all)
+                #Indexsing of arrays start from 0, and indexing of COCO classes starts from 1, which gives index of 5 for the first class(person)
                 if(detection[clss + 4] > max_prob):
                     #Update if new max
                     max_prob = detection[clss]
                     max_class = clss
 
-            #If certain enough
+            #If threshold is passed
             if max_prob > probability_threshold_subframe:
                 #Append new class entry
                 classes.append(max_class)
                 #Append new bbox entry(in the subframe-relative format)
                 bboxes.append([detection[0], detection[1], detection[2], detection[3]])
-                #Append confidence new entry
+                #Append confidence with new entry
                 confidences.append(max_prob)
     #Apply NMS on the subframe level
     nms_indexes = cv2.dnn.NMSBoxes(bboxes, confidences, probability_threshold_subframe, nms_threshold_subframe)
@@ -270,7 +270,7 @@ while cap.isOpened():
 
     #Check if file hasn't ended
     if not ret:
-        print("Can't receive frame (stream end?). Exiting ...")
+        print("The file was processed.")
         break
     
     #Process the frame
@@ -278,6 +278,7 @@ while cap.isOpened():
 
     #Check if interrupted
     if cv2.waitKey(1) == ord('q'):
+        print("Keyboard interrupt. Exiting...")
         break
 
 #End the job
