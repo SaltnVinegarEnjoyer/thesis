@@ -41,7 +41,7 @@ def getNineSubframes(frame):
     for height_pos in np.arange(0.25,1.0,0.25):
         for width_pos in np.arange(0.25,1.0,0.25):
             #Append a new subframe to an array
-            subframes.append(frame[int(frame_height * (height_pos-0.25)):int(frame_height * height_pos), int(frame_width * (width_pos-0.25)):int(frame_width * width_pos)])
+            subframes.append(frame[int(frame_height * (height_pos-0.25)):int(frame_height * (height_pos + 0.25)), int(frame_width * (width_pos-0.25)):int(frame_width * (width_pos + 0.25))])
     #Return the resulting array of subframes
     return subframes
 
