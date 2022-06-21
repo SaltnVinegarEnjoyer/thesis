@@ -1,4 +1,5 @@
 import cv2
+import numpy as np
 
 #TODO: Create a classes.txt, duplicate 0th frame for further static objects labels propogation
 #Load a pretrained tiny yolo network
@@ -10,9 +11,9 @@ model.setPreferableTarget(cv2.dnn.DNN_TARGET_CPU)
 
 #Path to the directory with video file in it
 #NOTE: It gets really messy
-dir_path = "C:\\Users\\ilkute\\Downloads\\aaa\\video_data\\"
+dir_path = "./frames/"
 #Name of the video file
-video_name = "v_4.avi"
+video_name = "input_video.mp4"
 
 
 #Array of COCO classes that we are interested in 
@@ -35,25 +36,13 @@ def getNineSubframes(frame):
     frame_height, frame_width, frame_channels = frame.shape
     #Array for storing the subframes
     subframes = []
-    #Now we need to get the parts of the image. I am pretty sure that it is possible to do it automatically(same as with scaling on line 106), but i am too lazy to do it for now.
-    #Top left
-    subframes.append(frame[0:int(frame_height/2), 0:int(frame_width/2)])
-    #Top middle
-    subframes.append(frame[0:int(frame_height/2), int(frame_width/4):int(frame_width/2 + frame_width/4)])
-    #Top right
-    subframes.append(frame[0:int(frame_height/2), int(frame_width/2):frame_width])
-    #Middle left
-    subframes.append(frame[int(frame_height/4):int(frame_height/2 + frame_height/4), 0:int(frame_width/2)])
-    #Middle middle
-    subframes.append(frame[int(frame_height/4):int(frame_height/2 + frame_height/4), int(frame_width/4):int(frame_width/2 + frame_width/4)])
-    #Middle right
-    subframes.append(frame[int(frame_height/4):int(frame_height/2 + frame_height/4), int(frame_width/2):frame_width])
-    #Bottom left
-    subframes.append(frame[int(frame_height/2):frame_height, 0:int(frame_width/2)])
-    #Bottom middle
-    subframes.append(frame[int(frame_height/2):frame_height, int(frame_width/4):int(frame_width/2 + frame_width/4)])
-    #Bottom right
-    subframes.append(frame[int(frame_height/2):frame_height, int(frame_width/2):frame_width])
+    #Now we need to get parts of the image
+    #The step is going to be 1 quarter for both width and height
+    for height_pos in np.arange(0.25,1.0,0.25):
+        for width_pos in np.arange(0.25,1.0,0.25):
+            #Append a new subframe to an array
+            subframes.append(frame[int(frame_height * (height_pos-0.25)):int(frame_height * height_pos), int(frame_width * (width_pos-0.25)):int(frame_width * width_pos)])
+    #Return the resulting array of subframes
     return subframes
 
 #Function for processing the whole frame
