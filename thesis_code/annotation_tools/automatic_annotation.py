@@ -46,7 +46,7 @@ def getNineSubframes(frame):
 
 #Function for processing the whole frame
 def process_frame(frame, model):
-    #New plan: 
+    #Operation: 
     #1. Divide each frame into 4 same-sized parts (or 9, since the objects are going to be also present on the sides of the subframes)
     #2. Process each subframe
     #3. Mathematically process each bbox to be relative to the whole frame
@@ -268,7 +268,7 @@ while cap.isOpened():
     #Read a new frame
     ret, frame = cap.read()
 
-    #Check if file hasn't ended
+    #Check if video is over
     if not ret:
         print("The file was processed.")
         break
