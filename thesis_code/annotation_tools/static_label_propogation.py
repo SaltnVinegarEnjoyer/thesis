@@ -2,7 +2,7 @@ from os import listdir
 #USAGE: Save the static bboxes as dir_path/static_labels.txt
 
 #Path to the frames/labels directory
-dir_path = "C:\\Users\\ilkute\\Downloads\\aaa\\video_data\\"
+dir_path = "./frames/"
 #Load the static labels
 f = open(dir_path + "static_labels.txt", "r")
 #Read the contents
