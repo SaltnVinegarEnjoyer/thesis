@@ -20,6 +20,7 @@ video_name = "input_video.mp4"
 interested_classes = [1, 3, 8, 9]
 #Array of COCO class names for generating new class list
 coco_names_indexed = ["person","bicycle","car","motorcycle","airplane","bus","train","truck","boat","traffic light","fire hydrant","stop sign","parking meter","bench","bird","cat","dog","horse","sheep","cow","elephant","bear","zebra","giraffe","backpack","umbrella","handbag","tie","suitcase","frisbee","skis","snowboard","sports ball","kite","baseball bat","baseball glove","skateboard","surfboard","tennis racket","bottle","wine glass","cup","fork","knife","spoon","bowl","banana","apple","sandwich","orange","broccoli","carrot","hot dog","pizza","donut","cake","chair","couch","potted plant","bed","dining table","toilet","tv","laptop","mouse","remote","keyboard","cell phone","microwave","oven","toaster","sink","refrigerator","book","clock","vase","scissors","teddy bear","hair drier","toothbrush"]
+
 #Counter of processed frames. Used for file naming
 frame_number_file = 0
 
@@ -38,7 +39,7 @@ def getNineSubframes(frame):
     subframes = []
     #Now we need to get parts of the image
     #There will be 9 subframes total
-    #The subframe step is going to be 1 quarter for both width and height
+    #The subframe step is going to be 1 quarter of a whole image for both width and height
     for height_pos in np.arange(0.25,1.0,0.25):
         for width_pos in np.arange(0.25,1.0,0.25):
             #Append a new subframe to an array
@@ -49,26 +50,26 @@ def getNineSubframes(frame):
 #Function for processing the whole frame
 def process_frame(frame, model):
     #Operation: 
-    #1. Divide each frame into 4 same-sized parts (or 9, since the objects are going to be also present on the sides of the subframes)
+    #1. Divide each frame into 9 same-sized parts
     #2. Process each subframe
-    #3. Mathematically process each bbox to be relative to the whole frame
+    #3. Mathematically process each bounding box to be relative to the whole frame
     #4. Apply NMS on the resulting data
 
     #Frame counter for saving results
     global frame_number_file
-    #Output layers of the network
+    #Output layers of the YOLO network
     global output_layers
     #Save the frame itself 
     cv2.imwrite(dir_path + str(frame_number_file) + ".jpg", frame)
 
-    #String for storing the output values. Is going to be printed in a file
+    #String for storing the output values. It is going to be printed in a file
     frame_boxes = ""
     #Find frame's dimensions
     frame_height, frame_width, frame_channels = frame.shape
     #Array of frame's subframes
     subframes = getNineSubframes(frame)
 
-    #Conver all subframes into blobs
+    #Conver all subframes into YOLO-specific blobs
     for idx, subframe in enumerate(subframes):
         subframes[idx] = cv2.dnn.blobFromImage(subframe, 1/255, (416, 416), [0,0,0], 1, crop=False) 
 
@@ -135,7 +136,7 @@ def process_frame(frame, model):
 
     #Array of frame's classes
     global_classes = []
-    #Go throug each subframe
+    #Go through each subframe
     for subframe_classes in classes_from_subframes:
         #Go through each class
         for box_class in subframe_classes:
@@ -215,7 +216,7 @@ def process_subframe(out):
     #Array of subframe's bboxes' classes
     classes = []
 
-    #Go through each yolo's output layer
+    #Go through each YOLO's output layer
     for layerOut in out:
         #Go through each detection
         for detection in layerOut:
@@ -223,22 +224,23 @@ def process_subframe(out):
             max_prob = 0
             max_class = 0
             #We only want to know certain classes
-            for clss in interested_classes:
+            for class_interested in interested_classes:
                 #We need to add 4 to the index, since first 5 values are the bounding box properties(cx,cy,w,h,probability that there is an object at all)
                 #Indexsing of arrays start from 0, and indexing of COCO classes starts from 1, which gives index of 5 for the first class(person)
-                if(detection[clss + 4] > max_prob):
+                if(detection[class_interested + 4] > max_prob):
                     #Update if new max
-                    max_prob = detection[clss]
-                    max_class = clss
+                    max_prob = detection[class_interested]
+                    max_class = class_interested
 
             #If threshold is passed
             if max_prob > probability_threshold_subframe:
-                #Append new class entry
+                #Append a new class entry
                 classes.append(max_class)
-                #Append new bbox entry(in the subframe-relative format)
+                #Append a new bbox entry(in the subframe-relative format)
                 bboxes.append([detection[0], detection[1], detection[2], detection[3]])
-                #Append confidence with new entry
+                #Append a new confidence entry
                 confidences.append(max_prob)
+
     #Apply NMS on the subframe level
     nms_indexes = cv2.dnn.NMSBoxes(bboxes, confidences, probability_threshold_subframe, nms_threshold_subframe)
     #Holders for the remaining bboxes, classes and their confidences
@@ -248,6 +250,7 @@ def process_subframe(out):
 
     #Pick only the ones that have passed NMS
     for i in nms_indexes:
+        #Append them to corresponding arrays
         nms_bboxes.append(bboxes[i])
         nms_classes.append(classes[i])
         nms_confidences.append(confidences[i])
