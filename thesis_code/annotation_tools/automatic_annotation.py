@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-#Load a pretrained tiny yolo network
+#Load a pretrained yolo network
 #YOLO-608 works best
 #Link: https://pjreddie.com/darknet/yolo/
 #Save config as cfg.cfg and weights as yolov3.weights in the folder containing this script
