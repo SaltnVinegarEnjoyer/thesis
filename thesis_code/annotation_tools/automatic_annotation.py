@@ -4,6 +4,7 @@ import numpy as np
 #Load a pretrained tiny yolo network
 #YOLO-608 works best
 #Link: https://pjreddie.com/darknet/yolo/
+#Save config as cfg.cfg and weights as yolov3.weights in the folder containing this script
 model = cv2.dnn.readNetFromDarknet("cfg.cfg", "yolov3.weights")
 model.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
 model.setPreferableTarget(cv2.dnn.DNN_TARGET_CPU)
@@ -14,10 +15,11 @@ dir_path = "./frames/"
 #Name of the video file
 video_name = "input_video.mp4"
 
-
 #Array of COCO classes that we are interested in 
 #Person, car, truck, boat
 interested_classes = [1, 3, 8, 9]
+#Array of COCO class names for generating new class list
+coco_names_indexed = ["person","bicycle","car","motorcycle","airplane","bus","train","truck","boat","traffic light","fire hydrant","stop sign","parking meter","bench","bird","cat","dog","horse","sheep","cow","elephant","bear","zebra","giraffe","backpack","umbrella","handbag","tie","suitcase","frisbee","skis","snowboard","sports ball","kite","baseball bat","baseball glove","skateboard","surfboard","tennis racket","bottle","wine glass","cup","fork","knife","spoon","bowl","banana","apple","sandwich","orange","broccoli","carrot","hot dog","pizza","donut","cake","chair","couch","potted plant","bed","dining table","toilet","tv","laptop","mouse","remote","keyboard","cell phone","microwave","oven","toaster","sink","refrigerator","book","clock","vase","scissors","teddy bear","hair drier","toothbrush"]
 #Counter of processed frames. Used for file naming
 frame_number_file = 0
 
@@ -136,9 +138,9 @@ def process_frame(frame, model):
     #Go throug each subframe
     for subframe_classes in classes_from_subframes:
         #Go through each class
-        for classs in subframe_classes:
+        for box_class in subframe_classes:
             #Append class to the global class array
-            global_classes.append(classs)
+            global_classes.append(box_class)
 
     #Array of frame's confidences
     confidencess = []
@@ -158,10 +160,12 @@ def process_frame(frame, model):
         #Get the bounding box
         box = global_bboxes[i]
         #Get the class
-        classs = global_classes[i]
+        box_class = global_classes[i]
+        #Convert the class to custom index
+        box_class = interested_classes.index(box_class)
 
         #Add new entry to the string that will be written as an annotation to the frame
-        frame_boxes += str(classs) + " "
+        frame_boxes += str(box_class) + " "
         frame_boxes += str(box[0]) + " "
         frame_boxes += str(box[1]) + " "
         frame_boxes += str(box[2]) + " "
@@ -251,6 +255,13 @@ def process_subframe(out):
     #Return resulting arrays
     #We also need to return the confidences for further NMS process
     return nms_classes,nms_bboxes, nms_confidences
+
+#Write a new class names file for LabelImg
+f = open(dir_path + "predefined_classes.txt", 'w')
+for label in interested_classes:
+    #Insert a corresponding indexed label name
+    f.write(coco_names_indexed[label-1] + "\n")
+f.close()
 
 #Get a video capture
 cap = cv2.VideoCapture(dir_path + video_name)
